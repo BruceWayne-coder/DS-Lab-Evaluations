@@ -1,0 +1,13 @@
+#include <iostream>
+#include <vector>
+#include <algorithm>
+using namespace std;
+
+int main() {
+  vector<string> arr = {"banana", "apple", "orange", "grape"};
+  sort(arr.begin(), arr.end());
+  for (string s : arr)
+    cout << s << " ";
+  cout << endl;
+  return 0;
+}
