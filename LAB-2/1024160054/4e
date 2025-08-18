@@ -1,0 +1,11 @@
+#include <iostream>
+using namespace std;
+
+int main() {
+  char ch = 'A';
+  if (ch >= 'A' && ch <= 'Z') {
+    ch = ch + ('a' - 'A');
+  }
+  cout << ch << endl;
+  return 0;
+}
