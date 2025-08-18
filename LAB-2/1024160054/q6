@@ -1,0 +1,159 @@
+#include <iostream>
+#include <vector>
+using namespace std;
+
+struct Element {
+    int row, col, val;
+};
+
+class SparseMatrix {
+public:
+    int rows, cols, nonZero;
+    vector<Element> elements;
+
+    SparseMatrix(int r, int c, int nz) : rows(r), cols(c), nonZero(nz) {
+        elements.reserve(nz);
+    }
+
+    void readElements() {
+        cout << "Enter row, column, value for each non-zero element:\n";
+        for (int i = 0; i < nonZero; i++) {
+            Element e;
+            cin >> e.row >> e.col >> e.val;
+            elements.push_back(e);
+        }
+    }
+
+    void display() {
+        int k = 0;
+        for (int i = 0; i < rows; i++) {
+            for (int j = 0; j < cols; j++) {
+                if (k < nonZero && elements[k].row == i && elements[k].col == j)
+                    cout << elements[k++].val << " ";
+                else
+                    cout << "0 ";
+            }
+            cout << "\n";
+        }
+    }
+
+    SparseMatrix transpose() {
+        vector<Element> transElements;
+        for (int c = 0; c < cols; c++) {
+            for (auto &e : elements) {
+                if (e.col == c) {
+                    transElements.push_back({e.col, e.row, e.val});
+                }
+            }
+        }
+        SparseMatrix trans(cols, rows, transElements.size());
+        trans.elements = transElements;
+        return trans;
+    }
+
+    SparseMatrix add(const SparseMatrix& other) {
+        if (rows != other.rows || cols != other.cols) {
+            cout << "Addition not possible: Dimension mismatch.\n";
+            return SparseMatrix(0, 0, 0);
+        }
+        vector<Element> resultElements;
+        int i = 0, j = 0;
+        while (i < nonZero && j < other.nonZero) {
+            if (elements[i].row < other.elements[j].row ||
+               (elements[i].row == other.elements[j].row && elements[i].col < other.elements[j].col)) {
+                resultElements.push_back(elements[i++]);
+            } else if (elements[i].row > other.elements[j].row ||
+                      (elements[i].row == other.elements[j].row && elements[i].col > other.elements[j].col)) {
+                resultElements.push_back(other.elements[j++]);
+            } else {
+                int summed = elements[i].val + other.elements[j].val;
+                if (summed != 0)
+                    resultElements.push_back({elements[i].row, elements[i].col, summed});
+                i++; j++;
+            }
+        }
+        while (i < nonZero) resultElements.push_back(elements[i++]);
+        while (j < other.nonZero) resultElements.push_back(other.elements[j++]);
+        SparseMatrix result(rows, cols, resultElements.size());
+        result.elements = resultElements;
+        return result;
+    }
+
+    SparseMatrix multiply(const SparseMatrix& other) {
+        if (cols != other.rows) {
+            cout << "Multiplication not possible: Dimension mismatch.\n";
+            return SparseMatrix(0, 0, 0);
+        }
+        vector<Element> resultElements;
+        // Convert other to column-wise for faster access
+        vector<vector<Element>> colElements(other.cols);
+        for (auto &e : other.elements) {
+            colElements[e.col].push_back(e);
+        }
+        // Multiply
+        for (int i = 0; i < rows; i++) {
+            for (int j = 0; j < other.cols; j++) {
+                int sum = 0;
+                int p1 = 0, p2 = 0;
+                // Elements in row i of first matrix
+                vector<Element> rowElems;
+                for (auto &e : elements) {
+                    if (e.row == i) rowElems.push_back(e);
+                }
+                // Elements in column j of second matrix
+                vector<Element> colElems = colElements[j];
+                // Multiply matching columns and rows
+                p1 = 0; p2 = 0;
+                while (p1 < (int)rowElems.size() && p2 < (int)colElems.size()) {
+                    if (rowElems[p1].col < colElems[p2].row)
+                        p1++;
+                    else if (rowElems[p1].col > colElems[p2].row)
+                        p2++;
+                    else {
+                        sum += rowElems[p1].val * colElems[p2].val;
+                        p1++; p2++;
+                    }
+                }
+                if (sum != 0)
+                    resultElements.push_back({i, j, sum});
+            }
+        }
+        SparseMatrix result(rows, other.cols, resultElements.size());
+        result.elements = resultElements;
+        return result;
+    }
+};
+
+int main() {
+    int r, c, nz;
+
+    cout << "Enter rows, columns, non-zero elements for matrix A:\n";
+    cin >> r >> c >> nz;
+    SparseMatrix A(r, c, nz);
+    A.readElements();
+
+    cout << "Enter rows, columns, non-zero elements for matrix B:\n";
+    cin >> r >> c >> nz;
+    SparseMatrix B(r, c, nz);
+    B.readElements();
+
+    cout << "\nMatrix A:\n";
+    A.display();
+
+    cout << "\nMatrix B:\n";
+    B.display();
+
+    cout << "\nTranspose of Matrix A:\n";
+    SparseMatrix At = A.transpose();
+    At.display();
+
+    cout << "\nA + B:\n";
+    SparseMatrix sum = A.add(B);
+    sum.display();
+
+    cout << "\nA * B:\n";
+    SparseMatrix prod = A.multiply(B);
+    prod.display();
+
+    return 0;
+}
